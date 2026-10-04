@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>Time Since | Live Elapsed Timer</title>
+<style>
+:root{color-scheme:dark;--bg:#090d18;--panel:#121a2b;--line:#28344b;--muted:#9aa8bf;--text:#f5f7fb;--accent:#9b8cff;--accent2:#63e6c5}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -15%,#26345d 0%,transparent 55%),var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:grid;place-items:center;padding:22px}
+main{width:min(100%,720px)}
+.brand{display:flex;align-items:center;gap:10px;justify-content:center;color:#c6cde0;font-size:13px;letter-spacing:.18em;text-transform:uppercase;margin-bottom:25px}
+.mark{width:28px;height:28px;border:1px solid #7168ba;border-radius:9px;display:grid;place-items:center;color:var(--accent);font-size:17px}
+h1{text-align:center;font-size:clamp(32px,7vw,52px);letter-spacing:-.045em;margin:0 0 8px}
+.subtitle{text-align:center;color:var(--muted);margin:0 0 30px;font-size:15px}
+.panel{background:linear-gradient(150deg,rgba(23,33,54,.97),rgba(15,22,37,.97));border:1px solid var(--line);border-radius:24px;padding:clamp(20px,5vw,34px);box-shadow:0 24px 80px #0006}
+.eyebrow{text-align:center;color:var(--muted);font-size:12px;letter-spacing:.15em;text-transform:uppercase}
+.elapsed{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:22px 0 15px}
+.unit{min-width:0;text-align:center;padding:17px 6px 15px;background:#0b1120;border:1px solid #222e45;border-radius:15px}
+.num{font-size:clamp(26px,6.5vw,48px);font-weight:700;letter-spacing:-.05em;font-variant-numeric:tabular-nums;line-height:1.15;white-space:nowrap}
+.label{font-size:11px;color:var(--muted);margin-top:8px;text-transform:uppercase;letter-spacing:.1em}
+.extra{text-align:center;color:#c3cce0;font-size:14px;font-variant-numeric:tabular-nums;min-height:21px}
+.startline{text-align:center;color:var(--muted);font-size:13px;margin-top:10px}
+hr{border:0;border-top:1px solid var(--line);margin:28px 0}
+h2{font-size:17px;margin:0 0 15px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.field{display:flex;flex-direction:column;gap:7px}
+.field label{font-size:12px;color:var(--muted)}
+input{width:100%;min-width:0;background:#0b1120;border:1px solid #303d56;color:var(--text);border-radius:11px;padding:12px 13px;font:inherit;font-size:15px;outline:none}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 3px #9b8cff20}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:17px}
+button{border:0;border-radius:11px;padding:12px 16px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.primary{background:var(--accent);color:#15112b;flex:1}
+.secondary{background:#202b40;color:#e2e8f5;border:1px solid #34415a}
+.note{color:#8391a9;font-size:12px;line-height:1.55;text-align:center;margin:20px 4px 0}
+@media(max-width:420px){.elapsed{grid-template-columns:repeat(2,1fr)}.unit{padding:15px 5px}.fields{grid-template-columns:1fr 1fr}.panel{border-radius:20px}}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><span class="mark">↻</span> A little time machine</div>
+  <h1>Time Since</h1>
+  <p class="subtitle">A live counter for a moment that matters.</p>
+  <section class="panel" aria-label="Elapsed time counter">
+    <div class="eyebrow">Time elapsed</div>
+    <div class="elapsed">
+      <div class="unit"><div class="num" id="months">0</div><div class="label">Months</div></div>
+      <div class="unit"><div class="num" id="days">0</div><div class="label">Days</div></div>
+      <div class="unit"><div class="num" id="hours">00</div><div class="label">Hours</div></div>
+      <div class="unit"><div class="num" id="minutes">00</div><div class="label">Minutes</div></div>
+    </div>
+    <div class="extra"><span id="seconds">00</span> seconds</div>
+    <div class="startline" id="startline">Since March 9, 2026 at 7:29 AM</div>
+    <hr>
+    <h2>Choose your starting moment</h2>
+    <div class="fields">
+      <div class="field"><label for="date">Date</label><input id="date" type="date" value="2026-03-09"></div>
+      <div class="field"><label for="time">Time</label><input id="time" type="time" value="07:29"></div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="apply">Start timer</button>
+      <button class="secondary" id="reset">Reset example</button>
+    </div>
+  </section>
+  <p class="note">This page updates every second while it is open. The timer uses your device’s local time and stays in your browser, with no account or data sent anywhere.</p>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let start = new Date(2026, 2, 9, 7, 29, 0);
+const pad = n => String(n).padStart(2,'0');
+function formatDate(d){
+  return d.toLocaleString(undefined,{month:'long',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+}
+function addMonthsClamped(date, count){
+  const y=date.getFullYear(), m=date.getMonth()+count, day=date.getDate();
+  const first=new Date(y,m,1,date.getHours(),date.getMinutes(),date.getSeconds(),date.getMilliseconds());
+  const last=new Date(first.getFullYear(),first.getMonth()+1,0).getDate();
+  first.setDate(Math.min(day,last));
+  return first;
+}
+function render(){
+  const now=new Date();
+  let months=(now.getFullYear()-start.getFullYear())*12+now.getMonth()-start.getMonth();
+  let anchor=addMonthsClamped(start,months);
+  if(anchor>now){months--;anchor=addMonthsClamped(start,months);}
+  let ms=Math.max(0,now-anchor);
+  const days=Math.floor(ms/86400000); ms%=86400000;
+  const hours=Math.floor(ms/3600000); ms%=3600000;
+  const minutes=Math.floor(ms/60000); ms%=60000;
+  const seconds=Math.floor(ms/1000);
+  $('months').textContent=Math.max(0,months);
+  $('days').textContent=days;
+  $('hours').textContent=pad(hours);
+  $('minutes').textContent=pad(minutes);
+  $('seconds').textContent=pad(seconds);
+  $('startline').textContent='Since '+formatDate(start);
+}
+function apply(){
+  const d=$('date').value, t=$('time').value;
+  if(!d||!t)return;
+  const [y,m,day]=d.split('-').map(Number),[h,min]=t.split(':').map(Number);
+  const candidate=new Date(y,m-1,day,h,min,0);
+  if(candidate>Date.now()){alert('Please choose a starting moment in the past.');return;}
+  start=candidate;render();
+}
+$('apply').addEventListener('click',apply);
+$('reset').addEventListener('click',()=>{
+  start=new Date(2026,2,9,7,29,0);
+  $('date').value='2026-03-09';$('time').value='07:29';render();
+});
+$('date').max=new Date().toLocaleDateString('en-CA');
+$('date').addEventListener('change',()=>{if($('date').value>$('date').max)$('date').value=$('date').max;});
+render();setInterval(render,1000);
+</script>
+</body>
+</html>
